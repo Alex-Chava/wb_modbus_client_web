@@ -7,19 +7,41 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 100%;
+            max-width: 500px; /* Увеличим ширину для размещения трёх полей в строке */
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
         .form-group {
             margin-bottom: 15px;
         }
+        .form-group.grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* Три колонки */
+            gap: 10px; /* Расстояние между элементами */
+        }
         label {
             display: block;
             margin-bottom: 5px;
+            font-weight: bold;
         }
         input, select {
             width: 100%;
             padding: 8px;
             box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
         }
         .flash-message {
             padding: 10px;
@@ -29,83 +51,104 @@
         .flash-success {
             background-color: #d4edda;
             color: #155724;
+            border: 1px solid #c3e6cb;
         }
         .flash-error {
             background-color: #f8d7da;
             color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
         }
     </style>
 </head>
 <body>
-    <h1>Modbus Client</h1>
+    <div class="container">
+        <h1>Modbus Client</h1>
 
-    <!-- Flash-сообщения -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="flash-message flash-{{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+        <!-- Flash-сообщения -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
-    <!-- Форма -->
-    <form method="POST">
-        <div class="form-group">
-            <label for="port">Serial Port (e.g., COM14):</label>
-            <input type="text" id="port" name="port" required>
-        </div>
+        <!-- Форма -->
+        <form method="POST">
+            <div class="form-group">
+                <label for="port">Serial Port:</label>
+                <select id="port" name="port" required>
+                    {% for port in ports %}
+                        <option value="{{ port }}">{{ port }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        <div class="form-group">
-            <label for="baudrate">Baud Rate:</label>
-            <input type="number" id="baudrate" name="baudrate" value="9600" required>
-        </div>
+            <!-- Поля baudrate, stopbits и parity в одной строке -->
+            <div class="form-group grid">
+                <div>
+                    <label for="baudrate">Baud Rate:</label>
+                    <input type="number" id="baudrate" name="baudrate" value="9600" required>
+                </div>
+                <div>
+                    <label for="stopbits">Stop Bits:</label>
+                    <select id="stopbits" name="stopbits" required>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="parity">Parity:</label>
+                    <select id="parity" name="parity" required>
+                        <option value="N">None</option>
+                        <option value="E">Even</option>
+                        <option value="O">Odd</option>
+                    </select>
+                </div>
+            </div>
 
-        <div class="form-group">
-            <label for="parity">Parity:</label>
-            <select id="parity" name="parity" required>
-                <option value="N">None</option>
-                <option value="E">Even</option>
-                <option value="O">Odd</option>
-            </select>
-        </div>
+            <div class="form-group">
+                <label for="slave_addr">Slave Address:</label>
+                <input type="number" id="slave_addr" name="slave_addr" value="1" required>
+            </div>
 
-        <div class="form-group">
-            <label for="stopbits">Stop Bits:</label>
-            <select id="stopbits" name="stopbits" required>
-                <option value="1">1</option>
-                <option value="2">2</option>
-            </select>
-        </div>
+            <div class="form-group">
+                <label for="func_type">Function Type:</label>
+                <select id="func_type" name="func_type" required>
+                    <option value="read_holding_registers">Read Holding Registers</option>
+                    <option value="write_single_register">Write Single Register</option>
+                </select>
+            </div>
 
-        <div class="form-group">
-            <label for="slave_addr">Slave Address:</label>
-            <input type="number" id="slave_addr" name="slave_addr" value="1" required>
-        </div>
+            <div class="form-group">
+                <label for="start_addr">Start Address:</label>
+                <input type="number" id="start_addr" name="start_addr" value="100" required>
+            </div>
 
-        <div class="form-group">
-            <label for="func_type">Function Type:</label>
-            <select id="func_type" name="func_type" required>
-                <option value="read_holding_registers">Read Holding Registers</option>
-                <option value="write_single_register">Write Single Register</option>
-            </select>
-        </div>
+            <div class="form-group">
+                <label for="count">Count (for read):</label>
+                <input type="number" id="count" name="count" value="1">
+            </div>
 
-        <div class="form-group">
-            <label for="start_addr">Start Address:</label>
-            <input type="number" id="start_addr" name="start_addr" value="100" required>
-        </div>
+            <div class="form-group">
+                <label for="write_data">Write Data (for write):</label>
+                <input type="text" id="write_data" name="write_data">
+            </div>
 
-        <div class="form-group">
-            <label for="count">Count (for read):</label>
-            <input type="number" id="count" name="count" value="1">
-        </div>
-
-        <div class="form-group">
-            <label for="write_data">Write Data (for write):</label>
-            <input type="text" id="write_data" name="write_data">
-        </div>
-
-        <button type="submit">Submit</button>
-    </form>
+            <button type="submit">Submit</button>
+        </form>
+    </div>
 </body>
 </html>

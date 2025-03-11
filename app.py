@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, flash
 import minimalmodbus
+from serial.tools import list_ports
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"  # Для работы с flash-сообщениями
@@ -16,8 +17,16 @@ FUNCTION_CODES = {
     "write_multiple_registers": 0x10,
 }
 
+def get_available_ports():
+    """Возвращает список доступных COM-портов."""
+    ports = list_ports.comports()
+    return [port.device for port in ports]
+
 @app.route("/", methods=["GET", "POST"])
 def index():
+    # Получаем список доступных портов
+    available_ports = get_available_ports()
+
     if request.method == "POST":
         # Получаем данные из формы
         port = request.form.get("port")
@@ -35,7 +44,7 @@ def index():
 
         if not func_code:
             flash("Invalid function type", "error")
-            return render_template("index.html")
+            return render_template("index.html", ports=available_ports)
 
         try:
             # Инициализация Modbus-устройства
@@ -51,7 +60,7 @@ def index():
             elif func_code == 0x06:  # Write Single Register
                 if not write_data:
                     flash("ERROR: No data provided for write operation", "error")
-                    return render_template("index.html")
+                    return render_template("index.html", ports=available_ports)
                 value = int(write_data, 0)
                 instrument.write_register(start_addr, value, functioncode=func_code)
                 flash("SUCCESS: Written single register", "success")
@@ -63,7 +72,7 @@ def index():
             if 'instrument' in locals():
                 instrument.serial.close()
 
-    return render_template("index.html")
+    return render_template("index.html", ports=available_ports)
 
 if __name__ == "__main__":
     app.run(debug=True)
