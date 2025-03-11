@@ -17,7 +17,7 @@
         }
         .container {
             width: 100%;
-            max-width: 500px; /* Увеличим ширину для размещения трёх полей в строке */
+            max-width: 800px;
             padding: 20px;
             background-color: #fff;
             border-radius: 8px;
@@ -28,7 +28,7 @@
         }
         .form-group.grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr); /* Три колонки */
+            grid-template-columns: repeat(4, 1fr); /* Четыре колонки */
             gap: 10px; /* Расстояние между элементами */
         }
         label {
@@ -87,64 +87,87 @@
 
         <!-- Форма -->
         <form method="POST">
-            <div class="form-group">
-                <label for="port">Serial Port:</label>
-                <select id="port" name="port" required>
-                    {% for port in ports %}
-                        <option value="{{ port }}">{{ port }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <!-- Поля baudrate, stopbits и parity в одной строке -->
+            <!-- Поля Serial Port, Baud Rate, Stop Bits и Parity в одной строке -->
             <div class="form-group grid">
                 <div>
+                    <label for="port">Serial Port:</label>
+                    <select id="port" name="port" required>
+                        {% for port in ports %}
+                            <option value="{{ port }}" {% if port == port %}selected{% endif %}>{{ port }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
                     <label for="baudrate">Baud Rate:</label>
-                    <input type="number" id="baudrate" name="baudrate" value="9600" required>
+                    <select id="baudrate" name="baudrate" required>
+                        {% for rate in baud_rates %}
+                            <option value="{{ rate }}" {% if rate == baudrate %}selected{% endif %}>{{ rate }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div>
                     <label for="stopbits">Stop Bits:</label>
                     <select id="stopbits" name="stopbits" required>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
+                        <option value="1" {% if stopbits == 1 %}selected{% endif %}>1</option>
+                        <option value="2" {% if stopbits == 2 %}selected{% endif %}>2</option>
                     </select>
                 </div>
                 <div>
                     <label for="parity">Parity:</label>
                     <select id="parity" name="parity" required>
-                        <option value="N">None</option>
-                        <option value="E">Even</option>
-                        <option value="O">Odd</option>
+                        <option value="N" {% if parity == 'N' %}selected{% endif %}>None</option>
+                        <option value="E" {% if parity == 'E' %}selected{% endif %}>Even</option>
+                        <option value="O" {% if parity == 'O' %}selected{% endif %}>Odd</option>
                     </select>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label for="slave_addr">Slave Address:</label>
-                <input type="number" id="slave_addr" name="slave_addr" value="1" required>
+            <!-- Поля Slave Address, Модель устройства, Версия прошивки, Серийный номер в одной строке -->
+            <div class="form-group grid">
+                <div>
+                    <label for="slave_addr">Slave Address:</label>
+                    <input type="number" id="slave_addr" name="slave_addr" value="{{ slave_addr }}" required>
+                </div>
+                <div>
+                    <label for="device_model">Модель устройства:</label>
+                    <input type="text" id="device_model" name="device_model" value="{{ device_model }}" readonly>
+                </div>
+                <div>
+                    <label for="firmware_version">Версия прошивки:</label>
+                    <input type="text" id="firmware_version" name="firmware_version" value="{{ firmware_version }}" readonly>
+                </div>
+                <div>
+                    <label for="serial_number">Серийный номер:</label>
+                    <input type="text" id="serial_number" name="serial_number" value="{{ serial_number }}" readonly>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label for="func_type">Function Type:</label>
-                <select id="func_type" name="func_type" required>
-                    <option value="read_holding_registers">Read Holding Registers</option>
-                    <option value="write_single_register">Write Single Register</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="start_addr">Start Address:</label>
-                <input type="number" id="start_addr" name="start_addr" value="100" required>
-            </div>
-
-            <div class="form-group">
-                <label for="count">Count (for read):</label>
-                <input type="number" id="count" name="count" value="1">
-            </div>
-
-            <div class="form-group">
-                <label for="write_data">Write Data (for write):</label>
-                <input type="text" id="write_data" name="write_data">
+            <!-- Поля Function Type, Start Address, Write Data, Count в одной строке -->
+            <div class="form-group grid">
+                <div>
+                    <label for="func_type">Function Type:</label>
+                    <select id="func_type" name="func_type" required>
+                        <option value="read_holding_registers" selected>Read Holding Registers</option>
+                        <option value="write_single_register">Write Single Register</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="start_addr">Start Address:</label>
+                    <select id="start_addr" name="start_addr" required>
+                        <option value="110" {% if start_addr == 110 %}selected{% endif %}>110</option>
+                        <option value="111" {% if start_addr == 111 %}selected{% endif %}>111</option>
+                        <option value="112" {% if start_addr == 112 %}selected{% endif %}>112</option>
+                        <option value="128" {% if start_addr == 128 %}selected{% endif %}>128</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="write_data">Write Data (for write):</label>
+                    <input type="text" id="write_data" name="write_data" value="{{ write_data }}">
+                </div>
+                <div>
+                    <label for="count">Count (for read):</label>
+                    <input type="number" id="count" name="count" value="{{ count }}">
+                </div>
             </div>
 
             <button type="submit">Submit</button>
