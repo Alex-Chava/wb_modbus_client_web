@@ -159,4 +159,4 @@ def index():
     return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, connection_status=connection_status, **last_data)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
