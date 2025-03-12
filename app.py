@@ -118,6 +118,7 @@ def index():
             instrument.serial.parity = last_data["parity"]
             instrument.serial.stopbits = last_data["stopbits"]
             instrument.serial.timeout = 1.0
+            instrument.handle_local_echo = True
 
             # Проверка связи
             if check_connection(instrument):
