@@ -118,15 +118,15 @@ def index():
             instrument.serial.parity = last_data["parity"]
             instrument.serial.stopbits = last_data["stopbits"]
             instrument.serial.timeout = 1.0
-            instrument.handle_local_echo = True
+            #instrument.handle_local_echo = True
 
             # Проверка связи
             if check_connection(instrument):
                 connection_status = "Connected"
-                flash("SUCCESS: Connection established", "success")
+                #flash("SUCCESS: Connection established", "success")
             else:
                 connection_status = "Disconnected"
-                flash("ERROR: Failed to connect to the device", "error")
+                #flash("ERROR: Failed to connect to the device", "error")
                 return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, connection_status=connection_status, **last_data)
 
             # Чтение модели устройства (адрес 200)
