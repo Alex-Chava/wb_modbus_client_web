@@ -22,6 +22,7 @@
             background-color: #fff;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            position: relative; /* Для позиционирования статуса связи */
         }
         .form-group {
             margin-bottom: 15px;
@@ -70,10 +71,29 @@
         button:hover {
             background-color: #0056b3;
         }
+        .connection-status {
+            position: absolute; /* Абсолютное позиционирование */
+            top: 20px; /* Отступ сверху */
+            right: 20px; /* Отступ справа */
+            font-weight: bold;
+            padding: 8px 16px;
+            border-radius: 4px;
+            background-color: #d4edda; /* Зеленый фон для Connected */
+            color: #155724; /* Зеленый текст для Connected */
+        }
+        .connection-status.disconnected {
+            background-color: #f8d7da; /* Красный фон для Disconnected */
+            color: #721c24; /* Красный текст для Disconnected */
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Поле состояния связи в правом верхнем углу -->
+        <div class="connection-status {% if connection_status == 'Disconnected' %}disconnected{% endif %}">
+            {{ connection_status }}
+        </div>
+
         <h1>Modbus Client</h1>
 
         <!-- Flash-сообщения -->
