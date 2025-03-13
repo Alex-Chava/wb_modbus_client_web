@@ -129,7 +129,7 @@ def index():
 
         if not func_code:
             flash("Invalid function type", "error")
-            return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, voltage=voltage, connection_status=connection_status, **last_data)
+            return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, voltage=voltage, connection_status=connection_status, FUNCTION_CODES=FUNCTION_CODES, **last_data)
 
         try:
             # Инициализация Modbus-устройства
@@ -147,7 +147,7 @@ def index():
             else:
                 connection_status = "Disconnected"
                 flash("ERROR: Failed to connect to the device", "error")
-                return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, voltage=voltage, connection_status=connection_status, **last_data)
+                return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, voltage=voltage, connection_status=connection_status, FUNCTION_CODES=FUNCTION_CODES, **last_data)
 
             # Чтение модели устройства (адрес 200)
             device_model = read_string_from_registers(instrument, 200, 10)
@@ -171,7 +171,7 @@ def index():
             elif func_code == 0x06:  # Write Single Register
                 if not last_data["write_data"]:
                     flash("ERROR: No data provided for write operation", "error")
-                    return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, voltage=voltage, connection_status=connection_status, **last_data)
+                    return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, voltage=voltage, connection_status=connection_status, FUNCTION_CODES=FUNCTION_CODES, **last_data)
                 value = int(last_data["write_data"], 0)
                 instrument.write_register(last_data["start_addr"], value, functioncode=func_code)
                 flash("SUCCESS: Written single register", "success")
@@ -184,7 +184,7 @@ def index():
             if 'instrument' in locals():
                 instrument.serial.close()
 
-    return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, voltage=voltage, connection_status=connection_status, **last_data)
+    return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, voltage=voltage, connection_status=connection_status, FUNCTION_CODES=FUNCTION_CODES, **last_data)
 
 @app.route("/scan_coils", methods=["POST"])
 def scan_coils():
