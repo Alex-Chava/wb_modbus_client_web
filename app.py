@@ -1,11 +1,10 @@
-from flask import Flask, render_template, request, flash, session, jsonify
+from flask import Flask, render_template, request, session
 import minimalmodbus
 from serial.tools import list_ports
 import struct
-import time
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey"  # Для работы с сессиями и flash-сообщениями
+app.secret_key = "supersecretkey"  # Для работы с сессиями
 
 # Словарь для преобразования строковых значений в числовые коды функций Modbus
 FUNCTION_CODES = {
@@ -60,15 +59,6 @@ def read_u16_from_register(instrument, start_addr):
     except Exception as e:
         return f"Error reading u16: {str(e)}"
 
-def read_coils(instrument, start_addr, count):
-    """Читает значения coil регистров, начиная с адреса start_addr."""
-    try:
-        # Чтение coil регистров
-        coils = instrument.read_bits(start_addr, count, functioncode=0x01)
-        return coils
-    except Exception as e:
-        return f"Error reading coils: {str(e)}"
-
 def check_connection(instrument):
     """Проверяет, установлена ли связь с устройством."""
     try:
@@ -89,6 +79,7 @@ def index():
     serial_number = ""  # Переменная для хранения серийного номера
     voltage = ""  # Переменная для хранения напряжения
     connection_status = "Disconnected"  # Статус связи по умолчанию
+    operation_result = ""  # Переменная для хранения результата операции
 
     # Инициализация last_data с значениями по умолчанию
     last_data = {
@@ -128,8 +119,8 @@ def index():
         func_code = FUNCTION_CODES.get(last_data["func_type"])
 
         if not func_code:
-            flash("Invalid function type", "error")
-            return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, voltage=voltage, connection_status=connection_status, FUNCTION_CODES=FUNCTION_CODES, **last_data)
+            operation_result = "Invalid function type"
+            return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, voltage=voltage, connection_status=connection_status, operation_result=operation_result, **last_data)
 
         try:
             # Инициализация Modbus-устройства
@@ -138,16 +129,14 @@ def index():
             instrument.serial.parity = last_data["parity"]
             instrument.serial.stopbits = last_data["stopbits"]
             instrument.serial.timeout = 1.0
-            instrument.handle_local_echo = True
 
             # Проверка связи
             if check_connection(instrument):
                 connection_status = "Connected"
-                flash("SUCCESS: Connection established", "success")
             else:
                 connection_status = "Disconnected"
-                flash("ERROR: Failed to connect to the device", "error")
-                return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, voltage=voltage, connection_status=connection_status, FUNCTION_CODES=FUNCTION_CODES, **last_data)
+                operation_result = "Failed to connect to the device"
+                return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, voltage=voltage, connection_status=connection_status, operation_result=operation_result, **last_data)
 
             # Чтение модели устройства (адрес 200)
             device_model = read_string_from_registers(instrument, 200, 10)
@@ -167,51 +156,24 @@ def index():
 
             if func_code == 0x03:  # Read Holding Registers
                 response = instrument.read_registers(last_data["start_addr"], last_data["count"], functioncode=func_code)
-                flash(f"SUCCESS: Read holding registers: {response}", "success")
+                operation_result = f"SUCCESS: Read holding registers: {response}"
             elif func_code == 0x06:  # Write Single Register
                 if not last_data["write_data"]:
-                    flash("ERROR: No data provided for write operation", "error")
-                    return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, voltage=voltage, connection_status=connection_status, FUNCTION_CODES=FUNCTION_CODES, **last_data)
+                    operation_result = "ERROR: No data provided for write operation"
+                    return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, voltage=voltage, connection_status=connection_status, operation_result=operation_result, **last_data)
                 value = int(last_data["write_data"], 0)
                 instrument.write_register(last_data["start_addr"], value, functioncode=func_code)
-                flash("SUCCESS: Written single register", "success")
+                operation_result = "SUCCESS: Written single register"
             else:
-                flash("ERROR: Unsupported function type", "error")
+                operation_result = "ERROR: Unsupported function type"
         except Exception as e:
             connection_status = "Disconnected"
-            flash(f"ERROR: {str(e)}", "error")
+            operation_result = f"ERROR: {str(e)}"
         finally:
             if 'instrument' in locals():
                 instrument.serial.close()
 
-    return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, voltage=voltage, connection_status=connection_status, FUNCTION_CODES=FUNCTION_CODES, **last_data)
-
-@app.route("/scan_coils", methods=["POST"])
-def scan_coils():
-    if "last_data" not in session:
-        return jsonify({"error": "No connection data found"}), 400
-
-    last_data = session["last_data"]
-    interval = int(request.form.get("scan_interval", 1000))  # Интервал сканирования в миллисекундах
-
-    try:
-        instrument = minimalmodbus.Instrument(last_data["port"], last_data["slave_addr"])
-        instrument.serial.baudrate = last_data["baudrate"]
-        instrument.serial.parity = last_data["parity"]
-        instrument.serial.stopbits = last_data["stopbits"]
-        instrument.serial.timeout = 1.0
-        instrument.handle_local_echo = True
-
-        coils = read_coils(instrument, 1000, 16)
-        if isinstance(coils, str) and coils.startswith("Error"):
-            return jsonify({"error": coils}), 500
-
-        return jsonify({"coils": coils})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    finally:
-        if 'instrument' in locals():
-            instrument.serial.close()
+    return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, voltage=voltage, connection_status=connection_status, operation_result=operation_result, **last_data)
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=True)  # Включите debug для отладки
+    app.run(debug=True)
