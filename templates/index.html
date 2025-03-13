@@ -5,18 +5,77 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Modbus Scanner</title>
     <style>
-        table {
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        select, input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        #scan-control {
+            margin-top: 20px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 20px auto;
+        }
+        #coils-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-        th, td {
+        #coils-table th, #coils-table td {
             border: 1px solid #ddd;
-            padding: 8px;
+            padding: 12px;
             text-align: center;
         }
-        th {
+        #coils-table th {
             background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        #coils-table td {
+            background-color: #fff;
         }
     </style>
 </head>
@@ -26,45 +85,45 @@
         <label for="port">Port:</label>
         <select id="port" name="port">
             {% for port in ports %}
-                <option value="{{ port }}" {% if port == port %}selected{% endif %}>{{ port }}</option>
+                <option value="{{ port }}" {% if port == last_data.port %}selected{% endif %}>{{ port }}</option>
             {% endfor %}
-        </select><br>
+        </select>
 
         <label for="baudrate">Baud Rate:</label>
         <select id="baudrate" name="baudrate">
             {% for rate in baud_rates %}
-                <option value="{{ rate }}" {% if rate == baudrate %}selected{% endif %}>{{ rate }}</option>
+                <option value="{{ rate }}" {% if rate == last_data.baudrate %}selected{% endif %}>{{ rate }}</option>
             {% endfor %}
-        </select><br>
+        </select>
 
         <label for="parity">Parity:</label>
         <select id="parity" name="parity">
-            <option value="N" {% if parity == 'N' %}selected{% endif %}>None</option>
-            <option value="E" {% if parity == 'E' %}selected{% endif %}>Even</option>
-            <option value="O" {% if parity == 'O' %}selected{% endif %}>Odd</option>
-        </select><br>
+            <option value="N" {% if last_data.parity == 'N' %}selected{% endif %}>None</option>
+            <option value="E" {% if last_data.parity == 'E' %}selected{% endif %}>Even</option>
+            <option value="O" {% if last_data.parity == 'O' %}selected{% endif %}>Odd</option>
+        </select>
 
         <label for="stopbits">Stop Bits:</label>
-        <input type="number" id="stopbits" name="stopbits" value="{{ stopbits }}" min="1" max="2"><br>
+        <input type="number" id="stopbits" name="stopbits" value="{{ last_data.stopbits }}" min="1" max="2">
 
         <label for="slave_addr">Slave Address:</label>
-        <input type="number" id="slave_addr" name="slave_addr" value="{{ slave_addr }}" min="1" max="247"><br>
+        <input type="number" id="slave_addr" name="slave_addr" value="{{ last_data.slave_addr }}" min="1" max="247">
 
         <label for="func_type">Function Type:</label>
         <select id="func_type" name="func_type">
             {% for func, code in FUNCTION_CODES.items() %}
-                <option value="{{ func }}" {% if func == func_type %}selected{% endif %}>{{ func }}</option>
+                <option value="{{ func }}" {% if func == last_data.func_type %}selected{% endif %}>{{ func }}</option>
             {% endfor %}
-        </select><br>
+        </select>
 
         <label for="start_addr">Start Address:</label>
-        <input type="number" id="start_addr" name="start_addr" value="{{ start_addr }}" min="0"><br>
+        <input type="number" id="start_addr" name="start_addr" value="{{ last_data.start_addr }}" min="0">
 
         <label for="count">Count:</label>
-        <input type="number" id="count" name="count" value="{{ count }}" min="1"><br>
+        <input type="number" id="count" name="count" value="{{ last_data.count }}" min="1">
 
         <label for="write_data">Write Data (hex):</label>
-        <input type="text" id="write_data" name="write_data" value="{{ write_data }}"><br>
+        <input type="text" id="write_data" name="write_data" value="{{ last_data.write_data }}">
 
         <button type="submit">Submit</button>
     </form>
