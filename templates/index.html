@@ -3,199 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modbus Client</title>
+    <title>Modbus Scanner</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f4f4f4;
-        }
-        .container {
+        table {
             width: 100%;
-            max-width: 800px;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            position: relative; /* Для позиционирования статуса связи */
+            border-collapse: collapse;
+            margin-top: 20px;
         }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group.grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr); /* Четыре колонки */
-            gap: 10px; /* Расстояние между элементами */
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input, select {
-            width: 100%;
+        th, td {
+            border: 1px solid #ddd;
             padding: 8px;
-            box-sizing: border-box;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            text-align: center;
         }
-        .flash-message {
-            padding: 10px;
-            margin-bottom: 15px;
-            border-radius: 4px;
-        }
-        .flash-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .flash-error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        button {
-            width: 100%;
-            padding: 10px;
-            background-color: #007bff;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        .connection-status {
-            position: absolute; /* Абсолютное позиционирование */
-            top: 20px; /* Отступ сверху */
-            right: 20px; /* Отступ справа */
-            font-weight: bold;
-            padding: 8px 16px;
-            border-radius: 4px;
-            background-color: #d4edda; /* Зеленый фон для Connected */
-            color: #155724; /* Зеленый текст для Connected */
-        }
-        .connection-status.disconnected {
-            background-color: #f8d7da; /* Красный фон для Disconnected */
-            color: #721c24; /* Красный текст для Disconnected */
+        th {
+            background-color: #f2f2f2;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Поле состояния связи в правом верхнем углу -->
-        <div class="connection-status {% if connection_status == 'Disconnected' %}disconnected{% endif %}">
-            {{ connection_status }}
-        </div>
+    <h1>Modbus Scanner</h1>
+    <form method="POST">
+        <label for="port">Port:</label>
+        <select id="port" name="port">
+            {% for port in ports %}
+                <option value="{{ port }}" {% if port == port %}selected{% endif %}>{{ port }}</option>
+            {% endfor %}
+        </select><br>
 
-        <h1>Modbus Client</h1>
+        <label for="baudrate">Baud Rate:</label>
+        <select id="baudrate" name="baudrate">
+            {% for rate in baud_rates %}
+                <option value="{{ rate }}" {% if rate == baudrate %}selected{% endif %}>{{ rate }}</option>
+            {% endfor %}
+        </select><br>
 
-        <!-- Flash-сообщения -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="flash-message flash-{{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+        <label for="parity">Parity:</label>
+        <select id="parity" name="parity">
+            <option value="N" {% if parity == 'N' %}selected{% endif %}>None</option>
+            <option value="E" {% if parity == 'E' %}selected{% endif %}>Even</option>
+            <option value="O" {% if parity == 'O' %}selected{% endif %}>Odd</option>
+        </select><br>
 
-        <!-- Форма -->
-        <form method="POST">
-            <!-- Поля Serial Port, Baud Rate, Stop Bits и Parity в одной строке -->
-            <div class="form-group grid">
-                <div>
-                    <label for="port">Serial Port:</label>
-                    <select id="port" name="port" required>
-                        {% for port in ports %}
-                            <option value="{{ port }}" {% if port == port %}selected{% endif %}>{{ port }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label for="baudrate">Baud Rate:</label>
-                    <select id="baudrate" name="baudrate" required>
-                        {% for rate in baud_rates %}
-                            <option value="{{ rate }}" {% if rate == baudrate %}selected{% endif %}>{{ rate }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label for="stopbits">Stop Bits:</label>
-                    <select id="stopbits" name="stopbits" required>
-                        <option value="1" {% if stopbits == 1 %}selected{% endif %}>1</option>
-                        <option value="2" {% if stopbits == 2 %}selected{% endif %}>2</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="parity">Parity:</label>
-                    <select id="parity" name="parity" required>
-                        <option value="N" {% if parity == 'N' %}selected{% endif %}>None</option>
-                        <option value="E" {% if parity == 'E' %}selected{% endif %}>Even</option>
-                        <option value="O" {% if parity == 'O' %}selected{% endif %}>Odd</option>
-                    </select>
-                </div>
-            </div>
+        <label for="stopbits">Stop Bits:</label>
+        <input type="number" id="stopbits" name="stopbits" value="{{ stopbits }}" min="1" max="2"><br>
 
-            <!-- Поля Slave Address, Модель устройства, Версия прошивки, Серийный номер, Напряжение в одной строке -->
-            <div class="form-group grid">
-                <div>
-                    <label for="slave_addr">Slave Address:</label>
-                    <input type="number" id="slave_addr" name="slave_addr" value="{{ slave_addr }}" required>
-                </div>
-                <div>
-                    <label for="device_model">Модель устройства:</label>
-                    <input type="text" id="device_model" name="device_model" value="{{ device_model }}" readonly>
-                </div>
-                <div>
-                    <label for="firmware_version">Версия прошивки:</label>
-                    <input type="text" id="firmware_version" name="firmware_version" value="{{ firmware_version }}" readonly>
-                </div>
-                <div>
-                    <label for="serial_number">Серийный номер:</label>
-                    <input type="text" id="serial_number" name="serial_number" value="{{ serial_number }}" readonly>
-                </div>
-                <div>
-                    <label for="voltage">Напряжение:</label>
-                    <input type="text" id="voltage" name="voltage" value="{{ voltage }}" readonly>
-                </div>
-            </div>
+        <label for="slave_addr">Slave Address:</label>
+        <input type="number" id="slave_addr" name="slave_addr" value="{{ slave_addr }}" min="1" max="247"><br>
 
-            <!-- Поля Function Type, Start Address, Write Data, Count в одной строке -->
-            <div class="form-group grid">
-                <div>
-                    <label for="func_type">Function Type:</label>
-                    <select id="func_type" name="func_type" required>
-                        <option value="read_holding_registers" selected>Read Holding Registers</option>
-                        <option value="write_single_register">Write Single Register</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="start_addr">Start Address:</label>
-                    <select id="start_addr" name="start_addr" required>
-                        <option value="110" {% if start_addr == 110 %}selected{% endif %}>110</option>
-                        <option value="111" {% if start_addr == 111 %}selected{% endif %}>111</option>
-                        <option value="112" {% if start_addr == 112 %}selected{% endif %}>112</option>
-                        <option value="128" {% if start_addr == 128 %}selected{% endif %}>128</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="write_data">Write Data (for write):</label>
-                    <input type="text" id="write_data" name="write_data" value="{{ write_data }}">
-                </div>
-                <div>
-                    <label for="count">Count (for read):</label>
-                    <input type="number" id="count" name="count" value="{{ count }}">
-                </div>
-            </div>
+        <label for="func_type">Function Type:</label>
+        <select id="func_type" name="func_type">
+            {% for func, code in FUNCTION_CODES.items() %}
+                <option value="{{ func }}" {% if func == func_type %}selected{% endif %}>{{ func }}</option>
+            {% endfor %}
+        </select><br>
 
-            <button type="submit">Submit</button>
-        </form>
+        <label for="start_addr">Start Address:</label>
+        <input type="number" id="start_addr" name="start_addr" value="{{ start_addr }}" min="0"><br>
+
+        <label for="count">Count:</label>
+        <input type="number" id="count" name="count" value="{{ count }}" min="1"><br>
+
+        <label for="write_data">Write Data (hex):</label>
+        <input type="text" id="write_data" name="write_data" value="{{ write_data }}"><br>
+
+        <button type="submit">Submit</button>
+    </form>
+
+    <div id="scan-control">
+        <label for="scan-interval">Scan Interval (ms):</label>
+        <input type="number" id="scan-interval" value="1000" min="100">
+        <button id="start-scan">Start Scanning</button>
+        <button id="stop-scan" disabled>Stop Scanning</button>
     </div>
+
+    <table id="coils-table" style="display:none;">
+        <thead>
+            <tr>
+                {% for i in range(1, 17) %}
+                    <th>DI-{{ i }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                {% for i in range(1, 17) %}
+                    <td id="di-{{ i }}">-</td>
+                {% endfor %}
+            </tr>
+        </tbody>
+    </table>
+
+    <script>
+        let scanning = false;
+        let scanInterval = 1000;
+        let scanRequest = null;
+
+        document.getElementById('start-scan').addEventListener('click', () => {
+            if (scanning) return;
+            scanning = true;
+            document.getElementById('start-scan').disabled = true;
+            document.getElementById('stop-scan').disabled = false;
+            document.getElementById('coils-table').style.display = 'table';
+            scanInterval = parseInt(document.getElementById('scan-interval').value);
+
+            const scan = () => {
+                fetch('/scan_coils', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `scan_interval=${scanInterval}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                        stopScan();
+                    } else {
+                        for (let i = 0; i < data.coils.length; i++) {
+                            document.getElementById(`di-${i + 1}`).textContent = data.coils[i];
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    stopScan();
+                });
+            };
+
+            scanRequest = setInterval(scan, scanInterval);
+        });
+
+        document.getElementById('stop-scan').addEventListener('click', () => {
+            stopScan();
+        });
+
+        function stopScan() {
+            if (scanRequest) {
+                clearInterval(scanRequest);
+                scanRequest = null;
+            }
+            scanning = false;
+            document.getElementById('start-scan').disabled = false;
+            document.getElementById('stop-scan').disabled = true;
+        }
+    </script>
 </body>
 </html>

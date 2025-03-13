@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request, flash, session
+from flask import Flask, render_template, request, flash, session, jsonify
 import minimalmodbus
 from serial.tools import list_ports
 import struct
+import time
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"  # Для работы с сессиями и flash-сообщениями
@@ -58,6 +59,15 @@ def read_u16_from_register(instrument, start_addr):
         return register
     except Exception as e:
         return f"Error reading u16: {str(e)}"
+
+def read_coils(instrument, start_addr, count):
+    """Читает значения coil регистров, начиная с адреса start_addr."""
+    try:
+        # Чтение coil регистров
+        coils = instrument.read_bits(start_addr, count, functioncode=0x01)
+        return coils
+    except Exception as e:
+        return f"Error reading coils: {str(e)}"
 
 def check_connection(instrument):
     """Проверяет, установлена ли связь с устройством."""
@@ -175,6 +185,33 @@ def index():
                 instrument.serial.close()
 
     return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, voltage=voltage, connection_status=connection_status, **last_data)
+
+@app.route("/scan_coils", methods=["POST"])
+def scan_coils():
+    if "last_data" not in session:
+        return jsonify({"error": "No connection data found"}), 400
+
+    last_data = session["last_data"]
+    interval = int(request.form.get("scan_interval", 1000))  # Интервал сканирования в миллисекундах
+
+    try:
+        instrument = minimalmodbus.Instrument(last_data["port"], last_data["slave_addr"])
+        instrument.serial.baudrate = last_data["baudrate"]
+        instrument.serial.parity = last_data["parity"]
+        instrument.serial.stopbits = last_data["stopbits"]
+        instrument.serial.timeout = 1.0
+        instrument.handle_local_echo = True
+
+        coils = read_coils(instrument, 1000, 16)
+        if isinstance(coils, str) and coils.startswith("Error"):
+            return jsonify({"error": coils}), 500
+
+        return jsonify({"coils": coils})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if 'instrument' in locals():
+            instrument.serial.close()
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
