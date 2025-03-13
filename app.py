@@ -50,6 +50,15 @@ def read_u32_from_registers(instrument, start_addr):
     except Exception as e:
         return f"Error reading u32: {str(e)}"
 
+def read_u16_from_register(instrument, start_addr):
+    """Читает переменную формата u16 из регистра, начиная с адреса start_addr."""
+    try:
+        # Чтение одного регистра (2 байта)
+        register = instrument.read_register(start_addr, functioncode=0x03)
+        return register
+    except Exception as e:
+        return f"Error reading u16: {str(e)}"
+
 def check_connection(instrument):
     """Проверяет, установлена ли связь с устройством."""
     try:
@@ -68,6 +77,7 @@ def index():
     device_model = ""  # Переменная для хранения модели устройства
     firmware_version = ""  # Переменная для хранения версии прошивки
     serial_number = ""  # Переменная для хранения серийного номера
+    voltage = ""  # Переменная для хранения напряжения
     connection_status = "Disconnected"  # Статус связи по умолчанию
 
     # Инициализация last_data с значениями по умолчанию
@@ -109,7 +119,7 @@ def index():
 
         if not func_code:
             flash("Invalid function type", "error")
-            return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, connection_status=connection_status, **last_data)
+            return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, voltage=voltage, connection_status=connection_status, **last_data)
 
         try:
             # Инициализация Modbus-устройства
@@ -118,16 +128,16 @@ def index():
             instrument.serial.parity = last_data["parity"]
             instrument.serial.stopbits = last_data["stopbits"]
             instrument.serial.timeout = 1.0
-            #instrument.handle_local_echo = True
+            instrument.handle_local_echo = True
 
             # Проверка связи
             if check_connection(instrument):
                 connection_status = "Connected"
-                #flash("SUCCESS: Connection established", "success")
+                flash("SUCCESS: Connection established", "success")
             else:
                 connection_status = "Disconnected"
-                #flash("ERROR: Failed to connect to the device", "error")
-                return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, connection_status=connection_status, **last_data)
+                flash("ERROR: Failed to connect to the device", "error")
+                return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, voltage=voltage, connection_status=connection_status, **last_data)
 
             # Чтение модели устройства (адрес 200)
             device_model = read_string_from_registers(instrument, 200, 10)
@@ -138,13 +148,20 @@ def index():
             # Чтение серийного номера (адрес 270, формат u32)
             serial_number = read_u32_from_registers(instrument, 270)
 
+            # Чтение напряжения (регистр 121, формат u16)
+            voltage_raw = read_u16_from_register(instrument, 121)
+            if isinstance(voltage_raw, int):
+                voltage = f"{voltage_raw / 1000:.2f}"  # Деление на 1000 и форматирование
+            else:
+                voltage = "Error"
+
             if func_code == 0x03:  # Read Holding Registers
                 response = instrument.read_registers(last_data["start_addr"], last_data["count"], functioncode=func_code)
                 flash(f"SUCCESS: Read holding registers: {response}", "success")
             elif func_code == 0x06:  # Write Single Register
                 if not last_data["write_data"]:
                     flash("ERROR: No data provided for write operation", "error")
-                    return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, connection_status=connection_status, **last_data)
+                    return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, voltage=voltage, connection_status=connection_status, **last_data)
                 value = int(last_data["write_data"], 0)
                 instrument.write_register(last_data["start_addr"], value, functioncode=func_code)
                 flash("SUCCESS: Written single register", "success")
@@ -157,7 +174,7 @@ def index():
             if 'instrument' in locals():
                 instrument.serial.close()
 
-    return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, connection_status=connection_status, **last_data)
+    return render_template("index.html", ports=available_ports, baud_rates=BAUD_RATES, device_model=device_model, firmware_version=firmware_version, serial_number=serial_number, voltage=voltage, connection_status=connection_status, **last_data)
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)

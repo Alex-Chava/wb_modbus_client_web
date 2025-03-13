@@ -142,7 +142,7 @@
                 </div>
             </div>
 
-            <!-- Поля Slave Address, Модель устройства, Версия прошивки, Серийный номер в одной строке -->
+            <!-- Поля Slave Address, Модель устройства, Версия прошивки, Серийный номер, Напряжение в одной строке -->
             <div class="form-group grid">
                 <div>
                     <label for="slave_addr">Slave Address:</label>
@@ -159,6 +159,10 @@
                 <div>
                     <label for="serial_number">Серийный номер:</label>
                     <input type="text" id="serial_number" name="serial_number" value="{{ serial_number }}" readonly>
+                </div>
+                <div>
+                    <label for="voltage">Напряжение:</label>
+                    <input type="text" id="voltage" name="voltage" value="{{ voltage }}" readonly>
                 </div>
             </div>
 
